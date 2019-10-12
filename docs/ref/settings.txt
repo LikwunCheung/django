@@ -1989,6 +1989,13 @@ Example: ``"http://media.example.com/"``
     :setting:`MEDIA_URL` and :setting:`STATIC_URL` must have different
     values. See :setting:`MEDIA_ROOT` for more details.
 
+.. note::
+
+    If :setting:`MEDIA_URL` is a relative path, then it will be prefixed by the
+    server-provided value of ``SCRIPT_NAME`` (or ``/`` if not set). This makes
+    it easier to serve a Django application in a subpath without adding an
+    extra configuration to the settings.
+
 .. setting:: MIDDLEWARE
 
 ``MIDDLEWARE``
@@ -2299,8 +2306,11 @@ available in ``request.META``.)
 Default: ``[]`` (Empty list)
 
 If a URL path matches a regular expression in this list, the request will not be
-redirected to HTTPS. If :setting:`SECURE_SSL_REDIRECT` is ``False``, this
-setting has no effect.
+redirected to HTTPS. The
+:class:`~django.middleware.security.SecurityMiddleware` strips leading slashes
+from URL paths, so patterns shouldn't include them, e.g.
+``SECURE_REDIRECT_EXEMPT = [r'^no-ssl/$', …]``. If
+:setting:`SECURE_SSL_REDIRECT` is ``False``, this setting has no effect.
 
 .. setting:: SECURE_REFERRER_POLICY
 
@@ -2872,6 +2882,29 @@ doesn't have a ``next_page`` attribute.
 If ``None``, no redirect will be performed and the logout view will be
 rendered.
 
+.. setting:: PASSWORD_RESET_TIMEOUT
+
+``PASSWORD_RESET_TIMEOUT``
+--------------------------
+
+.. versionadded:: 3.1
+
+Default: ``259200`` (3 days, in seconds)
+
+The minimum number of seconds a password reset link is valid for.
+
+Used by the :class:`~django.contrib.auth.views.PasswordResetConfirmView`.
+
+.. note::
+
+   Reducing the value of this timeout doesn't make any difference to the
+   ability of an attacker to brute-force a password reset token. Tokens are
+   designed to be safe from brute-forcing without any timeout.
+
+   This timeout exists to protect against some unlikely attack scenarios, such
+   as someone gaining access to email archives that may contain old, unused
+   password reset tokens.
+
 .. setting:: PASSWORD_RESET_TIMEOUT_DAYS
 
 ``PASSWORD_RESET_TIMEOUT_DAYS``
@@ -2883,6 +2916,10 @@ The minimum number of days a password reset link is valid for. Depending on
 when the link is generated, it will be valid for up to a day longer.
 
 Used by the :class:`~django.contrib.auth.views.PasswordResetConfirmView`.
+
+.. deprecated:: 3.1
+
+    This setting is deprecated. Use :setting:`PASSWORD_RESET_TIMEOUT` instead.
 
 .. setting:: PASSWORD_HASHERS
 
@@ -3278,6 +3315,13 @@ It must end in a slash if set to a non-empty value.
 You may need to :ref:`configure these files to be served in development
 <serving-static-files-in-development>` and will definitely need to do so
 :doc:`in production </howto/static-files/deployment>`.
+
+.. note::
+
+    If :setting:`STATIC_URL` is a relative path, then it will be prefixed by
+    the server-provided value of ``SCRIPT_NAME`` (or ``/`` if not set). This
+    makes it easier to serve a Django application in a subpath without adding
+    an extra configuration to the settings.
 
 .. setting:: STATICFILES_DIRS
 

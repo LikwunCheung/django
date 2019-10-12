@@ -156,7 +156,7 @@ class PaginationTests(SimpleTestCase):
                 raise AttributeError('abc')
 
         with self.assertRaisesMessage(AttributeError, 'abc'):
-            Paginator(AttributeErrorContainer(), 10).count()
+            Paginator(AttributeErrorContainer(), 10).count
 
     def test_count_does_not_silence_type_error(self):
         class TypeErrorContainer:
@@ -164,7 +164,7 @@ class PaginationTests(SimpleTestCase):
                 raise TypeError('abc')
 
         with self.assertRaisesMessage(TypeError, 'abc'):
-            Paginator(TypeErrorContainer(), 10).count()
+            Paginator(TypeErrorContainer(), 10).count
 
     def check_indexes(self, params, page_num, indexes):
         """
@@ -296,6 +296,13 @@ class PaginationTests(SimpleTestCase):
         paginator = Paginator([], 2, allow_empty_first_page=False)
         with self.assertRaises(EmptyPage):
             paginator.get_page(1)
+
+    def test_paginator_iteration(self):
+        paginator = Paginator([1, 2, 3], 2)
+        page_iterator = iter(paginator)
+        for page, expected in enumerate(([1, 2], [3]), start=1):
+            with self.subTest(page=page):
+                self.assertEqual(expected, list(next(page_iterator)))
 
 
 class ModelPaginationTests(TestCase):

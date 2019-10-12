@@ -802,8 +802,16 @@ The behavior of this command changes depending on the arguments provided:
 * ``<app_label> <migrationname>``: Brings the database schema to a state where
   the named migration is applied, but no later migrations in the same app are
   applied. This may involve unapplying migrations if you have previously
-  migrated past the named migration. Use the name ``zero`` to unapply all
+  migrated past the named migration. You can use a prefix of the migration
+  name, e.g. ``0001``, as long as it's unique for the given app name. Use the
+  name ``zero`` to migrate all the way back i.e. to revert all applied
   migrations for an app.
+
+.. warning::
+
+    When unapplying migrations, all dependent migrations will also be
+    unapplied, regardless of ``<app_label>``. You can use ``--plan`` to check
+    which migrations will be unapplied.
 
 .. django-admin-option:: --database DATABASE
 
@@ -1393,6 +1401,12 @@ will reduce the number of processes accordingly.
 Each process gets its own database. You must ensure that different test cases
 don't access the same resources. For instance, test cases that touch the
 filesystem should create a temporary directory for their own use.
+
+.. note::
+
+    If you have test classes that cannot be run in parallel, you can use
+    ``SerializeMixin`` to run them sequentially. See :ref:`Enforce running test
+    classes sequentially <topics-testing-enforce-run-sequentially>`.
 
 This option requires the third-party ``tblib`` package to display tracebacks
 correctly:

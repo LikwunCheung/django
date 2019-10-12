@@ -1031,7 +1031,7 @@ key version to provide a final cache key. By default, the three parts
 are joined using colons to produce a final string::
 
     def make_key(key, key_prefix, version):
-        return ':'.join([key_prefix, str(version), key])
+        return '%s:%s:%s' % (key_prefix, version, key)
 
 If you want to combine the parts in different ways, or apply other
 processing to the final key (e.g., taking a hash digest of the key
@@ -1277,6 +1277,7 @@ Here are some more examples:
 * ``no_transform=True``
 * ``must_revalidate=True``
 * ``stale_while_revalidate=num_seconds``
+* ``no_cache=True``
 
 The full list of known directives can be found in the `IANA registry`_
 (note that not all of them apply to responses).

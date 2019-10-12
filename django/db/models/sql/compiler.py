@@ -1,5 +1,6 @@
 import collections
 import re
+from functools import partial
 from itertools import chain
 
 from django.core.exceptions import EmptyResultSet, FieldError
@@ -890,6 +891,15 @@ class SQLCompiler:
                     select, model._meta, alias, cur_depth + 1,
                     next, restricted)
                 get_related_klass_infos(klass_info, next_klass_infos)
+
+            def local_setter(obj, from_obj):
+                # Set a reverse fk object when relation is non-empty.
+                if from_obj:
+                    f.remote_field.set_cached_value(from_obj, obj)
+
+            def remote_setter(name, obj, from_obj):
+                setattr(from_obj, name, obj)
+
             for name in list(requested):
                 # Filtered relations work only on the topmost level.
                 if cur_depth > 1:
@@ -900,20 +910,12 @@ class SQLCompiler:
                     model = join_opts.model
                     alias = joins[-1]
                     from_parent = issubclass(model, opts.model) and model is not opts.model
-
-                    def local_setter(obj, from_obj):
-                        # Set a reverse fk object when relation is non-empty.
-                        if from_obj:
-                            f.remote_field.set_cached_value(from_obj, obj)
-
-                    def remote_setter(obj, from_obj):
-                        setattr(from_obj, name, obj)
                     klass_info = {
                         'model': model,
                         'field': f,
                         'reverse': True,
                         'local_setter': local_setter,
-                        'remote_setter': remote_setter,
+                        'remote_setter': partial(remote_setter, name),
                         'from_parent': from_parent,
                     }
                     related_klass_infos.append(klass_info)
@@ -1152,6 +1154,7 @@ class SQLCompiler:
 
 class SQLInsertCompiler(SQLCompiler):
     returning_fields = None
+    returning_params = tuple()
 
     def field_as_sql(self, field, val):
         """
@@ -1300,10 +1303,10 @@ class SQLInsertCompiler(SQLCompiler):
                 result.append(ignore_conflicts_suffix_sql)
             # Skip empty r_sql to allow subclasses to customize behavior for
             # 3rd party backends. Refs #19096.
-            r_sql, r_params = self.connection.ops.return_insert_columns(self.returning_fields)
+            r_sql, self.returning_params = self.connection.ops.return_insert_columns(self.returning_fields)
             if r_sql:
                 result.append(r_sql)
-                params += [r_params]
+                params += [self.returning_params]
             return [(" ".join(result), tuple(chain.from_iterable(params)))]
 
         if can_bulk:
@@ -1333,16 +1336,8 @@ class SQLInsertCompiler(SQLCompiler):
             if self.connection.features.can_return_rows_from_bulk_insert and len(self.query.objs) > 1:
                 return self.connection.ops.fetch_returned_insert_rows(cursor)
             if self.connection.features.can_return_columns_from_insert:
-                if (
-                    len(self.returning_fields) > 1 and
-                    not self.connection.features.can_return_multiple_columns_from_insert
-                ):
-                    raise NotSupportedError(
-                        'Returning multiple columns from INSERT statements is '
-                        'not supported on this database backend.'
-                    )
                 assert len(self.query.objs) == 1
-                return self.connection.ops.fetch_returned_insert_columns(cursor)
+                return self.connection.ops.fetch_returned_insert_columns(cursor, self.returning_params)
             return [self.connection.ops.last_insert_id(
                 cursor, self.query.get_meta().db_table, self.query.get_meta().pk.column
             )]

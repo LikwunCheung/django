@@ -347,6 +347,30 @@ Note that this only works given two things:
   that your database doesn't match your models, you'll just get errors when
   migrations try to modify those tables.
 
+Reverting migrations
+====================
+
+Any migration can be reverted with :djadmin:`migrate` by using the number of
+previous migrations::
+
+    $ python manage.py migrate books 0002
+    Operations to perform:
+      Target specific migration: 0002_auto, from books
+    Running migrations:
+      Rendering model states... DONE
+      Unapplying books.0003_auto... OK
+
+If you want to revert all migrations applied for an app, use the name
+``zero``::
+
+    $ python manage.py migrate books zero
+    Operations to perform:
+      Unapply all migrations: books
+    Running migrations:
+      Rendering model states... DONE
+      Unapplying books.0002_auto... OK
+      Unapplying books.0001_initial... OK
+
 .. _historical-models:
 
 Historical models
@@ -669,7 +693,7 @@ for basic values, and doesn't specify import paths).
 Django can serialize the following:
 
 - ``int``, ``float``, ``bool``, ``str``, ``bytes``, ``None``, ``NoneType``
-- ``list``, ``set``, ``tuple``, ``dict``
+- ``list``, ``set``, ``tuple``, ``dict``, ``range``.
 - ``datetime.date``, ``datetime.time``, and ``datetime.datetime`` instances
   (include those that are timezone-aware)
 - ``decimal.Decimal`` instances
@@ -678,6 +702,7 @@ Django can serialize the following:
 - :func:`functools.partial` and :class:`functools.partialmethod` instances
   which have serializable ``func``, ``args``, and ``keywords`` values.
 - ``LazyObject`` instances which wrap a serializable value.
+- Enumeration types (e.g. ``TextChoices`` or ``IntegerChoices``) instances.
 - Any Django field
 - Any function or method reference (e.g. ``datetime.datetime.today``) (must be in module's top-level scope)
 - Unbound methods used from within the class body
